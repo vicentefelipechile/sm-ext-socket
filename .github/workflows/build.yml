@@ -39,6 +39,7 @@ jobs:
           repository: alliedmodders/sourcemod
           path: sourcemod
           fetch-depth: 1
+          submodules: recursive
 
       - name: Checkout AMBuild
         uses: actions/checkout@v4
