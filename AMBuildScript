@@ -58,6 +58,9 @@ class ExtensionConfig(object):
   def configure(self):
     cxx = builder.DetectCompilers()
 
+    targets = getattr(builder.options, 'targets', 'x86') or 'x86'
+    self.is_x64 = 'x86_64' in targets.split(',')
+
     if cxx.like('gcc'):
       self.configure_gcc(cxx)
     elif cxx.vendor == 'msvc':
@@ -102,11 +105,11 @@ class ExtensionConfig(object):
       '-Wno-switch',
       '-Wno-array-bounds',
       '-msse',
-      '-m32',
+      '-m32' if not self.is_x64 else '-m64',
       '-fvisibility=hidden',
     ]
     cxx.cxxflags += [
-      '-std=c++11',
+      '-std=c++17',
       # '-fno-exceptions',
       '-fno-threadsafe-statics',
       '-Wno-non-virtual-dtor',
@@ -114,7 +117,7 @@ class ExtensionConfig(object):
       '-fvisibility-inlines-hidden',
       '-D_GLIBCXX_USE_CXX11_ABI=0',
     ]
-    cxx.linkflags += ['-m32']
+    cxx.linkflags += ['-m32' if not self.is_x64 else '-m64']
 
     have_gcc = cxx.vendor == 'gcc'
     have_clang = cxx.vendor == 'clang'
@@ -154,16 +157,19 @@ class ExtensionConfig(object):
       '_ITERATOR_DEBUG_LEVEL=0',
       '_WIN32_WINNT=0x0601',
     ]
+    if self.is_x64:
+      cxx.defines += ['WIN64']
     cxx.cflags += [
       '/W3',
     ]
     cxx.cxxflags += [
       '/EHsc',
       '/GR-',
+      '/std:c++17',
       '/TP',
     ]
     cxx.linkflags += [
-      '/MACHINE:X86',
+      '/MACHINE:X64' if self.is_x64 else '/MACHINE:X86',
       'kernel32.lib',
       'user32.lib',
       'gdi32.lib',
@@ -176,10 +182,11 @@ class ExtensionConfig(object):
       'uuid.lib',
       'odbc32.lib',
       'odbccp32.lib',
+      'ws2_32.lib',
     ]
 
-    # setup boost libraries
-    cxx.linkflags += ['/LIBPATH:"' + os.path.join(self.boost_root, 'stage', 'x86', 'lib') + '"']
+    # setup boost include path (headers only, no compiled libs required)
+    cxx.includes += [os.path.join(self.boost_root)]
 
     if builder.options.opt == '1':
       cxx.cflags += ['/Ox', '/Zo']
@@ -197,7 +204,8 @@ class ExtensionConfig(object):
     
     # link flags based off of socket Makefile
     cxx.linkflags += ['-lpthread', '-Wl,-Bstatic', '-lm', '-lstdc++']
-    cxx.linkflags += ['-L', os.path.join(self.boost_root, 'stage', 'x86', 'lib')]
+    boost_lib_arch = 'x64' if self.is_x64 else 'x86'
+    cxx.linkflags += ['-L', os.path.join(self.boost_root, 'stage', boost_lib_arch, 'lib')]
     cxx.linkflags += ['-lboost_thread']
     cxx.linkflags += ['-Wl,-Bdynamic']
     if cxx.vendor == 'gcc':

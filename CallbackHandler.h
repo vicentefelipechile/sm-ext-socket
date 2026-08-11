@@ -2,7 +2,7 @@
 #define INC_SEXT_CALLBACKHANDLER_H
 
 #include <deque>
-#include <boost/thread.hpp>
+#include <mutex>
 
 class Callback;
 struct SocketWrapper;
@@ -22,7 +22,7 @@ private:
 	Callback* FetchFirstCallback();
 
 	std::deque<Callback*> callbackQueue;
-	boost::mutex callbackQueueMutex;
+	std::mutex callbackQueueMutex;
 };
 
 extern CallbackHandler callbackHandler;

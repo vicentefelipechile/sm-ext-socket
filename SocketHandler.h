@@ -2,8 +2,9 @@
 #define INC_SEXT_SOCKETHANDLER_H
 
 #include <deque>
+#include <mutex>
+#include <thread>
 #include <boost/asio.hpp>
-#include <boost/thread.hpp>
 
 #include "Socket.h"
 
@@ -35,11 +36,11 @@ public:
 
 private:
 	std::deque<SocketWrapper*> socketList;
-	boost::mutex socketListMutex;
+	std::mutex socketListMutex;
 
 	boost::asio::io_service::work* ioServiceWork;
 
-	boost::thread* ioServiceProcessingThread;
+	std::thread* ioServiceProcessingThread;
 	bool ioServiceProcessingThreadInitialized;
 
 	void RunIoService();

@@ -2,7 +2,6 @@
 
 #include <assert.h>
 #include <boost/asio.hpp>
-#include <boost/bind.hpp>
 
 #include "CallbackHandler.h"
 
@@ -43,7 +42,7 @@ SocketHandler::~SocketHandler() {
 }
 
 void SocketHandler::Shutdown() {
-	boost::mutex::scoped_lock l(socketListMutex);
+	std::lock_guard<std::mutex> l(socketListMutex);
 
 	for (std::deque<SocketWrapper*>::iterator it=socketList.begin(); it!=socketList.end(); it++) {
 		delete *it;
@@ -56,7 +55,7 @@ void SocketHandler::Shutdown() {
 
 template <class SocketType>
 Socket<SocketType>* SocketHandler::CreateSocket(SM_SocketType st) {
-	boost::mutex::scoped_lock l(socketListMutex);
+	std::lock_guard<std::mutex> l(socketListMutex);
 
 	SocketWrapper* sp = new SocketWrapper(new Socket<SocketType>(st), st);
 	socketList.push_back(sp);
@@ -68,7 +67,7 @@ void SocketHandler::DestroySocket(SocketWrapper* sw) {
 	assert(sw);
 
 	{ // lock
-		boost::mutex::scoped_lock l(socketListMutex);
+		std::lock_guard<std::mutex> l(socketListMutex);
 
 		for (std::deque<SocketWrapper*>::iterator it=socketList.begin(); it!=socketList.end(); it++) {
 			if (*it == sw) {
@@ -84,7 +83,7 @@ void SocketHandler::DestroySocket(SocketWrapper* sw) {
 void SocketHandler::StartProcessing() {
 	assert(!ioServiceProcessingThreadInitialized);
 
-	ioServiceProcessingThread = new boost::thread(boost::bind(&SocketHandler::RunIoService, this));
+	ioServiceProcessingThread = new std::thread([this]() { RunIoService(); });
 	ioServiceProcessingThreadInitialized = true;
 }
 
@@ -106,7 +105,7 @@ void SocketHandler::RunIoService() {
 }
 
 SocketWrapper* SocketHandler::GetSocketWrapper(const void* socket) {
-	boost::mutex::scoped_lock l(socketListMutex);
+	std::lock_guard<std::mutex> l(socketListMutex);
 
 	for (std::deque<SocketWrapper*>::iterator it=socketList.begin(); it!=socketList.end(); it++) {
 		if ((*it)->socket == socket) return *it;

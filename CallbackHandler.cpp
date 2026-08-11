@@ -5,7 +5,7 @@
 #include "Callback.h"
 
 void CallbackHandler::AddCallback(Callback* callback) {
-	boost::mutex::scoped_lock l(callbackQueueMutex);
+	std::lock_guard<std::mutex> l(callbackQueueMutex);
 
 	if (!callback->IsValid()) {
 		std::cout << "[SERR] invalid callback (event=" << callback->callbackEvent << ")" << std::endl;
@@ -16,7 +16,7 @@ void CallbackHandler::AddCallback(Callback* callback) {
 }
 
 void CallbackHandler::RemoveCallbacks(SocketWrapper* sw) {
-	boost::mutex::scoped_lock l(callbackQueueMutex);
+	std::lock_guard<std::mutex> l(callbackQueueMutex);
 
 	for (std::deque<Callback*>::iterator it=callbackQueue.begin(); it!=callbackQueue.end(); ) {
 		if ((*it)->socketWrapper == sw) {
@@ -38,7 +38,7 @@ void CallbackHandler::ExecuteQueuedCallbacks() {
 }
 
 Callback* CallbackHandler::FetchFirstCallback() {
-	boost::mutex::scoped_lock l(callbackQueueMutex);
+	std::lock_guard<std::mutex> l(callbackQueueMutex);
 
 	if (!callbackQueue.empty()) {
 		for (std::deque<Callback*>::iterator it=callbackQueue.begin(); it!=callbackQueue.end(); it++) {
