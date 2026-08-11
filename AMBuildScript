@@ -55,6 +55,8 @@ class ExtensionConfig(object):
     else:
       raise Exception('Could not find a copy of Boost')
 
+    self.boost_root = Normalize(self.boost_root)
+
   def configure(self):
     cxx = builder.DetectCompilers()
 
