@@ -99,8 +99,8 @@ class ExtensionConfig(object):
     cxx.cflags += [
       '-pipe',
       '-fno-strict-aliasing',
+      '-fPIC',
       '-Wall',
-      '-Werror',
       '-Wno-unused',
       '-Wno-switch',
       '-Wno-array-bounds',
@@ -114,6 +114,7 @@ class ExtensionConfig(object):
       '-fno-threadsafe-statics',
       '-Wno-non-virtual-dtor',
       '-Wno-overloaded-virtual',
+      '-Wno-deprecated-declarations',
       '-fvisibility-inlines-hidden',
       '-D_GLIBCXX_USE_CXX11_ABI=0',
     ]
@@ -201,13 +202,10 @@ class ExtensionConfig(object):
 
   def configure_linux(self, cxx):
     cxx.defines += ['_LINUX', 'POSIX']
-    
-    # link flags based off of socket Makefile
-    cxx.linkflags += ['-lpthread', '-Wl,-Bstatic', '-lm', '-lstdc++']
-    boost_lib_arch = 'x64' if self.is_x64 else 'x86'
-    cxx.linkflags += ['-L', os.path.join(self.boost_root, 'stage', boost_lib_arch, 'lib')]
-    cxx.linkflags += ['-lboost_thread']
-    cxx.linkflags += ['-Wl,-Bdynamic']
+
+    # Boost is used header-only (Boost.Asio), so no compiled Boost libraries
+    # are needed at link time.
+    cxx.linkflags += ['-lpthread', '-lm', '-lstdc++']
     if cxx.vendor == 'gcc':
       cxx.linkflags += ['-static-libgcc']
     elif cxx.vendor == 'clang':
