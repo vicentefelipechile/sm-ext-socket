@@ -37,6 +37,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: alliedmodders/sourcemod
+          ref: '1.12-dev'
           path: sourcemod
           fetch-depth: 1
           submodules: recursive
@@ -91,24 +92,18 @@ jobs:
         run: |
           set -e
           case "${{ matrix.os }}" in
-            windows-latest) plat=windows ;;
-            *) plat=linux ;;
+            windows-latest) ext=dll ;;
+            *) ext=so ;;
           esac
-          if [ "${{ matrix.arch }}" = "x86" ]; then arch_suffix=x86; else arch_suffix=x86_64; fi
-
-          if [ "$plat" = "windows" ]; then
-            bin=build/package/addons/sourcemod/extensions/socket.ext.dll
-            if [ "$arch_suffix" = "x86_64" ]; then
-              bin=build/package/addons/sourcemod/extensions/x64/socket.ext.dll
-            fi
-            name="socket-$plat-$arch_suffix.ext.dll"
+          if [ "${{ matrix.arch }}" = "x86" ]; then
+            subdir=""
           else
-            bin=build/package/addons/sourcemod/extensions/socket.ext.so
-            name="socket-$plat-$arch_suffix.ext.so"
+            subdir="x64"
           fi
 
+          bin="build/package/addons/sourcemod/extensions/$subdir/socket.ext.$ext"
           mkdir -p dist
-          cp "$bin" "dist/$name"
+          cp "$bin" "dist/socket.ext.$ext"
           cp build/package/addons/sourcemod/scripting/include/socket.inc dist/socket.inc
           ls -la dist
 
@@ -137,8 +132,32 @@ jobs:
         shell: bash
         run: find artifacts -type f
 
+      - name: Rename release assets to unique names
+        shell: bash
+        run: |
+          set -e
+          cd artifacts
+          first_inc=""
+          for dir in */; do
+            os_arch="${dir%/}"
+            os_arch="${os_arch#socket-ext-}"
+            for bin in socket.ext.so socket.ext.dll; do
+              if [ -f "$dir$bin" ]; then
+                cp "$dir$bin" "$dir$os_arch.ext.${bin##*.}"
+                rm -f "$dir$bin"
+              fi
+            done
+            if [ -f "$dir"socket.inc ]; then
+              if [ -z "$first_inc" ]; then
+                first_inc=1
+              else
+                rm -f "$dir"socket.inc
+              fi
+            fi
+          done
+          find . -type f
+
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
           files: artifacts/**/*
-          generate_release_notes: true

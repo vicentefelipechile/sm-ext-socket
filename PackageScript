@@ -13,6 +13,10 @@ folder_list = [
   #'addons/sourcemod/configs',
 ]
 
+# 64-bit extensions go into extensions/x64/.
+if Extension.is_x64:
+  folder_list.append('addons/sourcemod/extensions/x64')
+
 # Create the distribution folder hierarchy.
 folder_map = {}
 for folder in folder_list:
@@ -49,4 +53,7 @@ CopyFiles('scripting/include', 'addons/sourcemod/scripting/include',
 
 # Copy binaries.
 for cxx_task in Extension.extensions:
-  builder.AddCopy(cxx_task.binary, folder_map['addons/sourcemod/extensions'])
+  if Extension.is_x64:
+    builder.AddCopy(cxx_task.binary, folder_map['addons/sourcemod/extensions/x64'])
+  else:
+    builder.AddCopy(cxx_task.binary, folder_map['addons/sourcemod/extensions'])
