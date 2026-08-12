@@ -1,12 +1,12 @@
-name: Build release
+name: Compile check
 
 on:
   push:
-    tags:
-      - 'v*'
+  pull_request:
+  workflow_dispatch:
 
 jobs:
-  build:
+  verify:
     name: ${{ matrix.os }} ${{ matrix.arch }}
     runs-on: ${{ matrix.os }}
     strategy:
@@ -85,60 +85,3 @@ jobs:
           else
             python -c "from ambuild2.run import cli_run; cli_run()"
           fi
-
-      - name: Stage release files
-        shell: bash
-        run: |
-          set -e
-          case "${{ matrix.os }}" in
-            windows-latest) plat=windows ;;
-            *) plat=linux ;;
-          esac
-          if [ "${{ matrix.arch }}" = "x86" ]; then arch_suffix=x86; else arch_suffix=x86_64; fi
-
-          if [ "$plat" = "windows" ]; then
-            bin=build/package/addons/sourcemod/extensions/socket.ext.dll
-            if [ "$arch_suffix" = "x86_64" ]; then
-              bin=build/package/addons/sourcemod/extensions/x64/socket.ext.dll
-            fi
-            name="socket-$plat-$arch_suffix.ext.dll"
-          else
-            bin=build/package/addons/sourcemod/extensions/socket.ext.so
-            name="socket-$plat-$arch_suffix.ext.so"
-          fi
-
-          mkdir -p dist
-          cp "$bin" "dist/$name"
-          cp build/package/addons/sourcemod/scripting/include/socket.inc dist/socket.inc
-          ls -la dist
-
-      - name: Upload extension
-        uses: actions/upload-artifact@v4
-        with:
-          name: socket-ext-${{ matrix.os }}-${{ matrix.arch }}
-          path: dist/
-          if-no-files-found: error
-
-  release:
-    name: Publish release
-    needs: build
-    if: startsWith(github.ref, 'refs/tags/')
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-
-    steps:
-      - name: Download binaries
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts
-
-      - name: List release files
-        shell: bash
-        run: find artifacts -type f
-
-      - name: Create GitHub release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: artifacts/**/*
-          generate_release_notes: true
