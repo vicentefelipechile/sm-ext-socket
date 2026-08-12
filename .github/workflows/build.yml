@@ -87,7 +87,7 @@ jobs:
             python -c "from ambuild2.run import cli_run; cli_run()"
           fi
 
-      - name: Stage release files
+      - name: Stage build output
         shell: bash
         run: |
           set -e
@@ -96,12 +96,10 @@ jobs:
             *) ext=so ;;
           esac
           if [ "${{ matrix.arch }}" = "x86" ]; then
-            subdir=""
+            bin="build/package/addons/sourcemod/extensions/socket.ext.$ext"
           else
-            subdir="x64"
+            bin="build/package/addons/sourcemod/extensions/x64/socket.ext.$ext"
           fi
-
-          bin="build/package/addons/sourcemod/extensions/$subdir/socket.ext.$ext"
           mkdir -p dist
           cp "$bin" "dist/socket.ext.$ext"
           cp build/package/addons/sourcemod/scripting/include/socket.inc dist/socket.inc
@@ -110,7 +108,7 @@ jobs:
       - name: Upload extension
         uses: actions/upload-artifact@v4
         with:
-          name: socket-ext-${{ matrix.os }}-${{ matrix.arch }}
+          name: socket-${{ matrix.os }}-${{ matrix.arch }}
           path: dist/
           if-no-files-found: error
 
@@ -128,36 +126,33 @@ jobs:
         with:
           path: artifacts
 
-      - name: List release files
-        shell: bash
-        run: find artifacts -type f
-
-      - name: Rename release assets to unique names
+      - name: Package Linux (tar.gz)
         shell: bash
         run: |
           set -e
-          cd artifacts
-          first_inc=""
-          for dir in */; do
-            os_arch="${dir%/}"
-            os_arch="${os_arch#socket-ext-}"
-            for bin in socket.ext.so socket.ext.dll; do
-              if [ -f "$dir$bin" ]; then
-                cp "$dir$bin" "$dir$os_arch.ext.${bin##*.}"
-                rm -f "$dir$bin"
-              fi
-            done
-            if [ -f "$dir"socket.inc ]; then
-              if [ -z "$first_inc" ]; then
-                first_inc=1
-              else
-                rm -f "$dir"socket.inc
-              fi
-            fi
-          done
-          find . -type f
+          mkdir -p pkg-linux/addons/sourcemod/extensions/x64
+          mkdir -p pkg-linux/addons/sourcemod/scripting/include
+          cp artifacts/socket-ubuntu-latest-x86/socket.ext.so pkg-linux/addons/sourcemod/extensions/socket.ext.so
+          cp artifacts/socket-ubuntu-latest-x86_64/socket.ext.so pkg-linux/addons/sourcemod/extensions/x64/socket.ext.so
+          cp artifacts/socket-ubuntu-latest-x86_64/socket.inc pkg-linux/addons/sourcemod/scripting/include/socket.inc
+          tar -czf sourcemod-socket-linux.tar.gz -C pkg-linux .
+          ls -la sourcemod-socket-linux.tar.gz
+
+      - name: Package Windows (zip)
+        shell: bash
+        run: |
+          set -e
+          mkdir -p pkg-windows/addons/sourcemod/extensions/x64
+          mkdir -p pkg-windows/addons/sourcemod/scripting/include
+          cp artifacts/socket-windows-latest-x86/socket.ext.dll pkg-windows/addons/sourcemod/extensions/socket.ext.dll
+          cp artifacts/socket-windows-latest-x86_64/socket.ext.dll pkg-windows/addons/sourcemod/extensions/x64/socket.ext.dll
+          cp artifacts/socket-windows-latest-x86_64/socket.inc pkg-windows/addons/sourcemod/scripting/include/socket.inc
+          (cd pkg-windows && zip -r ../sourcemod-socket-windows.zip .)
+          ls -la sourcemod-socket-windows.zip
 
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
-          files: artifacts/**/*
+          files: |
+            sourcemod-socket-linux.tar.gz
+            sourcemod-socket-windows.zip
