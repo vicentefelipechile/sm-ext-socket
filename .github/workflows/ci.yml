@@ -82,11 +82,8 @@ jobs:
             gcc-multilib g++-multilib libstdc++6 lib32stdc++6 \
             libc6-dev libc6-dev-i386 linux-libc-dev linux-libc-dev:i386 lib32z1-dev
 
-      - name: Set up MSVC environment
-        if: runner.os == 'Windows'
-        uses: ilammy/msvc-dev-cmd@v1
-
-      - name: Build
+      - name: Build (Linux)
+        if: runner.os == 'Linux'
         shell: bash
         run: |
           mkdir build
@@ -96,6 +93,52 @@ jobs:
             --boost-path="$GITHUB_WORKSPACE/boost" \
             --targets=x86,x86_64
           ambuild
+
+      - name: Set up MSVC x86
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x86
+
+      - name: Build Windows x86
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          mkdir -p build-x86
+          cd build-x86
+          python ../configure.py --enable-optimize \
+            --sm-path="$GITHUB_WORKSPACE/cache/sourcemod" \
+            --boost-path="$GITHUB_WORKSPACE/boost" \
+            --targets=x86
+          ambuild
+
+      - name: Set up MSVC x64
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Build Windows x64
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          mkdir -p build-x64
+          cd build-x64
+          python ../configure.py --enable-optimize \
+            --sm-path="$GITHUB_WORKSPACE/cache/sourcemod" \
+            --boost-path="$GITHUB_WORKSPACE/boost" \
+            --targets=x86_64
+          ambuild
+
+      - name: Merge Windows packages
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          mkdir -p build/package
+          cp -r build-x86/package/* build/package/ 2>/dev/null || true
+          cp -r build-x64/package/* build/package/ 2>/dev/null || true
+          echo "Merged package contents:"
+          find build/package -type f | sort
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
