@@ -36,13 +36,13 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         name: Repository checkout
         with:
           fetch-depth: 0
           submodules: true
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         name: SourceMod checkout SM${{ matrix.sm }}
         with:
           repository: alliedmodders/sourcemod
@@ -50,7 +50,7 @@ jobs:
           submodules: true
           path: cache/sourcemod
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         name: AMBuild checkout
         with:
           repository: alliedmodders/ambuild
